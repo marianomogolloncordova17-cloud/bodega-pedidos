@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Validador de catálogo — Bodega</title>
+<style>
+  :root { --verde: #0B7A3B; --rojo: #C0392B; --ambar: #8A5A00; --fondo: #FFFDF6; --texto: #222222; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    background: var(--fondo);
+    color: var(--texto);
+    min-height: 100vh;
+  }
+  .contenedor { max-width: 640px; margin: 0 auto; padding: 20px 16px 40px; }
+  header { border-bottom: 3px solid var(--verde); padding: 8px 0 12px; margin-bottom: 16px; }
+  h1 { font-size: 22px; margin: 0; }
+  .subtitulo { color: #6B6B6B; margin: 6px 0 0; }
+  code { background: #ECECE4; padding: 1px 6px; border-radius: 6px; }
+  .estado { color: #6B6B6B; padding: 12px 0; }
+  .ok {
+    background: #E7F6EC;
+    border: 2px solid var(--verde);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--verde);
+  }
+  .errores {
+    background: #FDEDEB;
+    border: 2px solid var(--rojo);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .errores-titulo { font-size: 18px; font-weight: 700; color: var(--rojo); margin: 0 0 10px; }
+  .errores ul { margin: 0; padding-left: 20px; }
+  .errores li { margin-bottom: 8px; }
+  .cortesia {
+    background: #FEF3C7;
+    border: 2px solid #B7791F;
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: var(--ambar);
+  }
+  .resumen { font-size: 16px; color: #6B6B6B; margin: 10px 0 0; }
+  button {
+    min-height: 48px;
+    padding: 0 20px;
+    font-size: 16px;
+    font-weight: 700;
+    border: 2px solid var(--verde);
+    background: #FFFFFF;
+    color: var(--verde);
+    border-radius: 12px;
+    margin-top: 16px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="contenedor">
+    <header>
+      <h1>Validador de catálogo</h1>
+      <p class="subtitulo">Herramienta interna para el dueño. Ábrela con el parámetro del local:<br>
+        <code>validador.html?local=bodega-1</code></p>
+    </header>
+
+    <div id="resultado" class="estado">Cargando…</div>
+
+    <button type="button" onclick="location.reload()">Volver a validar</button>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    function $(sel) { return document.querySelector(sel); }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, function (ch) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+      });
+    }
+
+    function esPrecioValido(p) {
+      return typeof p === 'number' && isFinite(p) && p > 0;
+    }
+
+    function mostrarHTML(clase, html) {
+      var c = $('#resultado');
+      c.className = 'resultado ' + clase;
+      c.innerHTML = html;
+    }
+
+    // 16.5: si el archivo no carga, no se puede señalar la línea exacta.
+    function mostrarCortesia() {
+      mostrarHTML('cortesia', 'Hay un error de escritura en el archivo, casi siempre una coma o comilla borrada cerca de lo último que editaste. Compara tu línea con otra de producto que sí funcione.');
+    }
+
+    // Sección 6: reporta total de ítems y agotados, ids duplicados,
+    // precios no numéricos o <= 0, y opciones con precio incompleto.
+    function validar(localId) {
+      var catalogo = LOCAL.catalogo;
+      if (!Array.isArray(catalogo)) {
+        mostrarCortesia();
+        return;
+      }
+
+      var errores = [];
+      var total = 0;
+      var agotados = 0;
+      var contadorIds = {};
+
+      for (var i = 0; i < catalogo.length; i++) {
+        var cat = catalogo[i];
+        if (!cat || !Array.isArray(cat.items)) {
+          errores.push('Una categoría no tiene su lista de productos (items). Compara con otra categoría que sí funcione.');
+          continue;
+        }
+        for (var j = 0; j < cat.items.length; j++) {
+          var it = cat.items[j];
+          total++;
+          if (!it || typeof it !== 'object') {
+            errores.push('Hay una línea de producto mal escrita en "' + (cat.categoria || 'una categoría') + '". Compara con una línea de producto que sí funcione.');
+            continue;
+          }
+          if (it.agotado === true) { agotados++; }
+          if (!it.id) {
+            errores.push('Hay un producto sin id en "' + (cat.categoria || 'una categoría') + '". Cada producto necesita su id.');
+          } else {
+            contadorIds[it.id] = (contadorIds[it.id] || 0) + 1;
+          }
+          if (!esPrecioValido(it.precio)) {
+            errores.push('El precio de "' + (it.nombre || it.id || 'sin nombre') + '" no es un número válido. Escribe un número mayor que 0, sin "S/" (ejemplo: 4.5).');
+          }
+          if (it.opciones !== undefined) {
+            if (!Array.isArray(it.opciones)) {
+              errores.push('Las opciones de "' + (it.nombre || it.id) + '" están mal escritas. Compara con un producto con opciones que sí funcione.');
+            } else {
+              for (var k = 0; k < it.opciones.length; k++) {
+                var op = it.opciones[k];
+                if (!op || !Array.isArray(op.choices) || op.choices.length === 0) {
+                  errores.push('La opción "' + (op && op.tipo ? op.tipo : '?') + '" de "' + (it.nombre || it.id) + '" no tiene choices. Compara con otra opción que sí funcione.');
+                  continue;
+                }
+                var conPrecio = 0;
+                var sinPrecio = 0;
+                for (var m = 0; m < op.choices.length; m++) {
+                  var ch = op.choices[m];
+                  if (ch && ch.precio !== undefined) {
+                    conPrecio++;
+                    if (!esPrecioValido(ch.precio)) {
+                      errores.push('El precio de la choice "' + (ch.nombre || '?') + '" (opción "' + (op.tipo || '?') + '" de "' + (it.nombre || it.id) + '") no es un número válido. Escribe un número mayor que 0, sin "S/".');
+                    }
+                  } else {
+                    sinPrecio++;
+                  }
+                }
+                if (conPrecio > 0 && sinPrecio > 0) {
+                  errores.push('En "' + (it.nombre || it.id) + '", la opción "' + (op.tipo || '?') + '" tiene choices con precio y sin precio. Todas las choices de esa opción deben llevar precio, o ninguna.');
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (total === 0) {
+        errores.push('El catálogo está vacío: no hay ninguna línea de producto.');
+      }
+
+      Object.keys(contadorIds).forEach(function (id) {
+        if (contadorIds[id] > 1) {
+          errores.push('El id "' + id + '" está repetido ' + contadorIds[id] + ' veces. Cada producto necesita un id único.');
+        }
+      });
+
+      var resumen = 'Archivo: ' + esc(localId === 'demo' ? 'catalogo.js (demo)' : 'clientes/' + localId + '.js')
+        + ' · ' + total + ' productos (' + agotados + ' agotados)';
+
+      if (!errores.length) {
+        mostrarHTML('ok', 'OK — ' + total + ' productos (' + agotados + ' agotados)');
+      } else {
+        var html = '<p class="errores-titulo">Revisa estas líneas:</p><ul>';
+        for (var e = 0; e < errores.length; e++) {
+          html += '<li>' + esc(errores[e]) + '</li>';
+        }
+        html += '</ul>';
+        mostrarHTML('errores', html);
+      }
+      $('#resultado').innerHTML += '<p class="resumen">' + resumen + '</p>';
+    }
+
+    function iniciar() {
+      var params = new URLSearchParams(window.location.search);
+      var local = (params.get('local') || '').trim();
+
+      if (!local || !/^[A-Za-z0-9_-]+$/.test(local)) {
+        mostrarHTML('cortesia', 'Falta el local. Abre esta página con <b>?local=</b> (ejemplo: <b>validador.html?local=bodega-1</b>).');
+        return;
+      }
+
+      // 16.1: carga por inyección de <script>. PROHIBIDO fetch.
+      var s = document.createElement('script');
+      s.src = local === 'demo' ? 'catalogo.js' : 'clientes/' + local + '.js';
+      var terminado = false;
+
+      function cortesia() {
+        if (terminado) { return; }
+        terminado = true;
+        mostrarCortesia();
+      }
+
+      // Caso (a): el archivo no existe.
+      s.onerror = cortesia;
+
+      // Caso (b): cargó, pero LOCAL no existe o no tiene catálogo (16.2).
+      s.onload = function () {
+        if (terminado) { return; }
+        if (typeof LOCAL === 'undefined' || !LOCAL.catalogo) {
+          cortesia();
+          return;
+        }
+        terminado = true;
+        validar(local);
+      };
+
+      document.body.appendChild(s);
+    }
+
+    iniciar();
+  })();
+  </script>
+</body>
+</html>

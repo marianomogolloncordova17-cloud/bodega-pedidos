@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pedido — Bodega</title>
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+
+  <!-- Estado inicial: visible mientras carga el archivo de datos (jamás pantalla en blanco) -->
+  <div id="cargando" class="pantalla-mensaje">Cargando…</div>
+
+  <!-- Pantalla de error amable (sección 12): local inválido o catálogo no disponible -->
+  <div id="pantalla-error" class="pantalla-mensaje oculto" role="alert">
+    <p id="texto-error" class="texto-error"></p>
+  </div>
+
+  <div id="app" class="oculto">
+
+    <!-- Header fijo: logo o nombre + badge RECOJO EN VENTANILLA (+ DEMO en modo demo) -->
+    <header class="header-fijo">
+      <div class="header-contenido">
+        <div class="header-fila">
+          <img id="logo" class="logo oculto" alt="">
+          <h1 id="nombre-local" class="nombre-local"></h1>
+        </div>
+        <div class="badges">
+          <span class="badge badge-recojo">RECOJO EN VENTANILLA</span>
+          <span id="badge-demo" class="badge badge-demo oculto">DEMO</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Buscador fijo bajo el header -->
+    <div class="buscador-fijo">
+      <input id="buscador" class="buscador" type="search" placeholder="¿Qué buscas? Ej. arroz, jabón…"
+             autocomplete="off" aria-label="Buscar producto">
+    </div>
+
+    <!-- Chips de categorías con scroll horizontal -->
+    <nav id="chips" class="chips" aria-label="Categorías"></nav>
+
+    <!-- Lista de productos -->
+    <main id="lista-productos" class="lista-productos"></main>
+
+    <!-- Botón flotante fijo abajo: "Ver pedido (N) — S/ TOTAL" -->
+    <button id="boton-carrito" class="boton-carrito oculto" type="button"></button>
+
+    <!-- Pantalla carrito -->
+    <section id="pantalla-carrito" class="pantalla oculto" aria-label="Tu pedido">
+      <header class="pantalla-header">
+        <button id="volver-lista" class="boton-volver" type="button">← Seguir agregando</button>
+        <h2 class="pantalla-titulo">Tu pedido</h2>
+      </header>
+      <div id="contenido-carrito" class="pantalla-cuerpo"></div>
+      <div class="pantalla-pie">
+        <div id="total-carrito" class="total-pie"></div>
+        <button id="ver-pedido" class="boton-primario" type="button">Ver pedido</button>
+      </div>
+    </section>
+
+    <!-- Pantalla de confirmación -->
+    <section id="pantalla-confirmar" class="pantalla oculto" aria-label="Confirmar pedido">
+      <header class="pantalla-header">
+        <button id="volver-carrito" class="boton-volver" type="button">← Volver al carrito</button>
+        <h2 class="pantalla-titulo">Confirma tu pedido</h2>
+      </header>
+
+      <div class="pantalla-cuerpo">
+        <!-- Resumen: ítems, cantidades, TOTAL -->
+        <div id="resumen-confirmar" class="resumen"></div>
+
+        <!-- Modalidad: texto fijo, no editable -->
+        <p class="modalidad">Modalidad: <strong>Recojo en ventanilla</strong></p>
+
+        <fieldset class="grupo">
+          <legend>¿En cuánto tiempo pasas?</legend>
+          <label class="opcion-radio"><input type="radio" name="hora" value="15" checked><span>En 15 min</span></label>
+          <label class="opcion-radio"><input type="radio" name="hora" value="30"><span>En 30 min</span></label>
+          <label class="opcion-radio"><input type="radio" name="hora" value="60"><span>En 1 hora</span></label>
+          <label class="opcion-radio"><input type="radio" name="hora" value="otra"><span>Otra hora</span></label>
+          <div id="campo-hora-otra" class="campo-hora-otra oculto">
+            <label for="hora-otra">Elige la hora:</label>
+            <input id="hora-otra" type="time">
+          </div>
+          <p id="error-hora" class="aviso-error oculto"></p>
+        </fieldset>
+
+        <fieldset class="grupo">
+          <legend>¿Cómo pagarás?</legend>
+          <label class="opcion-radio"><input type="radio" name="pago" value="exacto" checked><span>Monto exacto</span></label>
+          <label class="opcion-radio"><input type="radio" name="pago" value="10"><span>Billete de S/ 10</span></label>
+          <label class="opcion-radio"><input type="radio" name="pago" value="20"><span>Billete de S/ 20</span></label>
+          <label class="opcion-radio"><input type="radio" name="pago" value="50"><span>Billete de S/ 50</span></label>
+          <label class="opcion-radio"><input type="radio" name="pago" value="100"><span>Billete de S/ 100</span></label>
+          <p id="vuelto-info" class="vuelto-info oculto"></p>
+          <p id="error-pago" class="aviso-error oculto"></p>
+          <p id="aviso-billete" class="aviso-billete oculto"></p>
+        </fieldset>
+
+        <div class="grupo">
+          <label for="nota" class="nota-label">Nota para el local (opcional)</label>
+          <textarea id="nota" class="nota" rows="2" maxlength="80"
+                    placeholder="Ej. en bolsas separadas"></textarea>
+          <div class="contador" aria-live="polite"><span id="contador-nota">0</span>/80</div>
+        </div>
+      </div>
+
+      <div class="pantalla-pie">
+        <button id="confirmar" class="boton-primario" type="button">Confirmar y enviar por WhatsApp</button>
+        <button id="editar-pedido" class="boton-secundario" type="button">Editar pedido</button>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
